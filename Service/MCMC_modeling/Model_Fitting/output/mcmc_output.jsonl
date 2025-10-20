@@ -1,0 +1,3 @@
+{"timestamp": 1759141869.040477, "text": "Status    | Bounds | Ellipses | Networks | Calls    | f_live | N_eff | log Z"}
+{"timestamp": 1759141966.4523442, "text": "Finished  | 69     | 2        | 4        | 56800    | N/A    | 4960  | -15185.27"}
+{"timestamp": 1759141966.5119784, "text": "Lens modeling with nautilus sampler took: 97.47 seconds"}
