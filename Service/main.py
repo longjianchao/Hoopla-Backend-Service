@@ -1,9 +1,13 @@
 import uvicorn
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from extract_background.extract_background_service import extract_background_app
-from MCMC_modeling.MCMC_modeling_service import mcmc_app
-from MCMC_modeling.model_status import mcmc_status_router
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from Service.extract_background.extract_background_service import extract_background_app
+from Service.MCMC_modeling.MCMC_modeling_service import mcmc_app
+from Service.MCMC_modeling.model_status import mcmc_status_router
 
 app = FastAPI()
 
