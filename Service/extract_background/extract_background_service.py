@@ -32,8 +32,8 @@ async def extract_background_post(file: UploadFile = File()):
         )
         
         # 归一化为 float32
-        arr = background.copy()
-        # arr = (background - np.min(background)) / (np.max(background) - np.min(background) + 1e-8)
+        # arr = background.copy()
+        arr = (background - np.min(background)) / (np.max(background) - np.min(background) + 1e-8)
         arr = arr.astype(np.float32)
         # 压缩并编码
         arr_bytes = arr.tobytes()

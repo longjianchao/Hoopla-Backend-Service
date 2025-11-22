@@ -409,9 +409,16 @@ class RunLensModel:
         # 导入必要的colormap工具
         from matplotlib.colors import PowerNorm, SymLogNorm
         
+        # 计算Data、Total Model和Lens Light三个图像的最大值中的最小值，用于统一color bar范围
+        common_vmax = min(
+            self.image_map.max(),
+            self.image_model.max(),
+            self.image_lens_light.max()
+        )
+        
         # Data - 使用平方根增强
         plt.subplot(231)
-        plt.imshow(self.image_map, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_map.min()))
+        plt.imshow(self.image_map, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_map.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("Arcsec")
         plt.ylabel("Arcsec")
@@ -420,7 +427,7 @@ class RunLensModel:
         # Total model
         plt.subplot(232)
         # 对模型图像同样应用平方根缩放
-        plt.imshow(self.image_model, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_model.min()))
+        plt.imshow(self.image_model, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_model.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("Arcsec")
         plt.title("Total Model")
@@ -438,8 +445,7 @@ class RunLensModel:
         
         # Lens light component
         plt.subplot(234)
-        plt.imshow(self.image_lens_light, origin='lower', cmap='jet', extent=extent, 
-                  norm=PowerNorm(gamma=0.5, vmin=self.image_lens_light.min()))
+        plt.imshow(self.image_lens_light, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_lens_light.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("Arcsec")
         plt.ylabel("Arcsec")
@@ -468,7 +474,7 @@ class RunLensModel:
         # Save the model results figure
         results_path = os.path.join(self.output_config['path'], self.output_config['figures']['results'])
         plt.savefig(results_path, bbox_inches='tight')
-        plt.show()
+        # plt.show()
         
     def plot_corner(self):
         """Create and plot the corner plot"""
@@ -496,14 +502,14 @@ class RunLensModel:
             # Save the corner plot
             corner_path = os.path.join(self.output_config['path'], self.output_config['figures']['corner'])
             plt.savefig(corner_path, bbox_inches='tight')
-            plt.show()
+            # plt.show()
         else:
             print("Corner plot is only available for sampling methods")
         
     def run(self):
         """Run the complete lens modeling pipeline"""
         self.load_data()
-        self.plot_data()
+        # self.plot_data()
         self.setup_model()
         self.setup_inference()
         self.init_jit_likelihood() #Buggy now for optimizer?

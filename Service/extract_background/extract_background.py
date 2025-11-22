@@ -223,7 +223,7 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
         # 将pred_back的4个通道合并为一个通道，改为灰度图
         pred_back = pred_back.mean(dim=1, keepdim=True)
         # 对pred_back进行归一化
-        # pred_back = (pred_back - pred_back.min()) / (pred_back.max() - pred_back.min())
+        pred_back = (pred_back - pred_back.min()) / (pred_back.max() - pred_back.min())
         # 移除所有大小为1的维度，得到(400, 400)形状
         pred_back = pred_back.squeeze()
         pred_back = pred_back.numpy()
