@@ -19,3 +19,4 @@ services:
       - PYTHONPATH=/app
       - NVIDIA_VISIBLE_DEVICES=all
     restart: unless-stopped
+    
