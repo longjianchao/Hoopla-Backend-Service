@@ -24,7 +24,7 @@ async def extract_background_post(file: UploadFile = File()):
         output_path = os.path.join(output_dir, "extracted_background.fits")
         
         # 处理文件并提取背景
-        background = process_ordinary_fits_and_extract_background(
+        background, original, pred_fore, pred_noise, pred_data = process_ordinary_fits_and_extract_background(
             file.file,
             output_fits_path=output_path,
             save_background=True,
@@ -32,7 +32,6 @@ async def extract_background_post(file: UploadFile = File()):
         )
         
         # 归一化为 float32
-        # arr = background.copy()
         arr = (background - np.min(background)) / (np.max(background) - np.min(background) + 1e-8)
         arr = arr.astype(np.float32)
         # 压缩并编码
@@ -40,11 +39,20 @@ async def extract_background_post(file: UploadFile = File()):
         compressed = gzip.compress(arr_bytes)
         b64_data = base64.b64encode(compressed).decode('utf-8')
         
+        # 导入calculate_real_chi函数
+        from GGSL_UNet.plot_image import calculate_real_chi
+        
+        # 使用GGSL_UNet中的calculate_real_chi函数计算卡方值
+        chi_square_1, chi_square_2 = calculate_real_chi(pred_data)
+        
+        
         return {
             "status": "success",
             "image_data": b64_data,
             "width": arr.shape[1],
-            "height": arr.shape[0]
+            "height": arr.shape[0],
+            "chi_square_1": float(chi_square_1[0]),
+            "chi_square_2": float(chi_square_2[0])
         }
     except FileNotFoundError as fnf_err:
         print("模型文件缺失:", str(fnf_err))

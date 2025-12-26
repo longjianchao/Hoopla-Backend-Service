@@ -102,7 +102,7 @@ model_components:
       center_x:
         prior_type: gaussian
         prior_settings:
-        - 0.0
+        - 0.0945
         - 0.1
         limits:
         - -3.0
@@ -111,7 +111,7 @@ model_components:
       center_y:
         prior_type: gaussian
         prior_settings:
-        - 0.0
+        - -0.001
         - 0.1
         limits:
         - -3.0

@@ -36,6 +36,12 @@ data/
 *.fits
 *.zip
 
+sim_data
+Service/MCMC_modeling/Model_Fitting/sim_data/
+*.fits
+*.json
+
+
 # 测试输出
 .coverage
 coverage.xml

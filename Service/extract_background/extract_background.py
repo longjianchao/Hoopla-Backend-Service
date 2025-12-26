@@ -14,6 +14,7 @@ if GGSL_UNET_PATH not in sys.path:
 
 # 只导入必要的模型组件
 from GGSL_UNet import diffusion_model
+from GGSL_UNet.plot_image import calculate_real_chi
 
 def convert_ordinary_fits_to_model_format(fits_file, output_fits_path=None):
     '''
@@ -45,6 +46,10 @@ def convert_ordinary_fits_to_model_format(fits_file, output_fits_path=None):
         # 假设数据在主HDU中
         image_data = hdul[0].data.astype(np.float32)
         
+        # 对image_data进行归一化
+        if image_data.max() - image_data.min() > 0:
+            image_data = (image_data - image_data.min()) / (image_data.max() - image_data.min())
+        
         # 检查图像维度并调整
         if len(image_data.shape) == 2:  # 单通道图像
             # 调整大小为64x64
@@ -72,6 +77,10 @@ def convert_ordinary_fits_to_model_format(fits_file, output_fits_path=None):
             img_pil = Image.fromarray((image_data * 255).astype(np.uint8))
             img_pil = img_pil.resize((64, 64), Image.LANCZOS)
             img_np = np.array(img_pil).astype(np.float32) / 255.0  # [64, 64, 3]
+            
+            # 归一化到[0, 1]范围
+            if img_np.max() - img_np.min() > 0:
+                img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
             
             # 生成第4通道（灰度平均）
             gray = img_np.mean(axis=2, keepdims=True)  # [64, 64, 1]
@@ -143,6 +152,10 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
         ggsl_unet_dir: GGSL_UNet目录路径，默认为None（自动检测）
     返回:
         background_array: 提取的背景图像数组，形状为(400, 400)
+        original_image: 原始输入图像数组，形状为(400, 400)
+        pred_fore: 预测的前景图像数组，形状为(400, 400)
+        pred_noise: 预测的噪声图像数组，形状为(400, 400)
+        pred_data: 原始预测结果数据，用于计算卡方值
     '''
     # 参数验证
     if not os.path.exists(fits_file_path):
@@ -211,22 +224,41 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
         if not os.path.exists(results_fits):
             raise FileNotFoundError(f"模型预测结果文件未生成: {results_fits}")
             
-        data = Table.read(results_fits)
+        pred_data = Table.read(results_fits)
         
         # 验证预测结果格式
-        if 'pred_back' not in data.colnames:
-            raise ValueError(f"预测结果文件不包含'pred_back'列")
+        required_columns = ['input', 'pred_back', 'pred_fore', 'pred_noise', 'weight', 'norm']
+        for col in required_columns:
+            if col not in pred_data.colnames:
+                raise ValueError(f"预测结果文件不包含'{col}'列")
+        
+        # 提取原始输入图像
+        original = image_preprocess(pred_data['input'], channel=4, norm=1)
+        original = torch.nn.functional.interpolate(original, size=(400, 400), mode='bilinear', align_corners=False)
+        original = original.mean(dim=1, keepdim=True)  # 转为灰度图
+        original = (original - original.min()) / (original.max() - original.min())
+        original = original.squeeze().numpy()
         
         # 提取背景图像数据
-        pred_back = image_preprocess(data['pred_back'], channel=4, norm=1)
+        pred_back = image_preprocess(pred_data['pred_back'], channel=4, norm=1)
         pred_back = torch.nn.functional.interpolate(pred_back, size=(400, 400), mode='bilinear', align_corners=False)
-        # 将pred_back的4个通道合并为一个通道，改为灰度图
-        pred_back = pred_back.mean(dim=1, keepdim=True)
-        # 对pred_back进行归一化
+        pred_back = pred_back.mean(dim=1, keepdim=True)  # 转为灰度图
         pred_back = (pred_back - pred_back.min()) / (pred_back.max() - pred_back.min())
-        # 移除所有大小为1的维度，得到(400, 400)形状
-        pred_back = pred_back.squeeze()
-        pred_back = pred_back.numpy()
+        pred_back = pred_back.squeeze().numpy()
+        
+        # 提取前景图像数据
+        pred_fore = image_preprocess(pred_data['pred_fore'], channel=4, norm=1)
+        pred_fore = torch.nn.functional.interpolate(pred_fore, size=(400, 400), mode='bilinear', align_corners=False)
+        pred_fore = pred_fore.mean(dim=1, keepdim=True)  # 转为灰度图
+        pred_fore = (pred_fore - pred_fore.min()) / (pred_fore.max() - pred_fore.min())
+        pred_fore = pred_fore.squeeze().numpy()
+        
+        # 提取噪声图像数据
+        pred_noise = image_preprocess(pred_data['pred_noise'], channel=4, norm=1)
+        pred_noise = torch.nn.functional.interpolate(pred_noise, size=(400, 400), mode='bilinear', align_corners=False)
+        pred_noise = pred_noise.mean(dim=1, keepdim=True)  # 转为灰度图
+        pred_noise = (pred_noise - pred_noise.min()) / (pred_noise.max() - pred_noise.min())
+        pred_noise = pred_noise.squeeze().numpy()
         
         # 删除临时文件
         if os.path.exists(results_fits):
@@ -236,10 +268,12 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
                 print(f"警告: 无法删除临时文件 {results_fits}")
         
         # 确保返回形状正确
-        if pred_back.shape != (400, 400):
-            raise ValueError(f"提取的背景形状不正确: {pred_back.shape}，应为(400, 400)")
+        expected_shape = (400, 400)
+        for name, arr in zip(['original', 'pred_back', 'pred_fore', 'pred_noise'], [original, pred_back, pred_fore, pred_noise]):
+            if arr.shape != expected_shape:
+                raise ValueError(f"{name}形状不正确: {arr.shape}，应为{expected_shape}")
             
-        return pred_back
+        return pred_back, original, pred_fore, pred_noise, pred_data
         
     except FileNotFoundError as e:
         print(f"文件错误: {str(e)}")
@@ -264,6 +298,10 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
         temp_dir: 临时文件保存目录，默认为None（使用当前目录）
     返回:
         background_array: 提取的背景图像数组，形状为(400, 400)
+        original_image: 原始输入图像数组，形状为(400, 400)
+        pred_fore: 预测的前景图像数组，形状为(400, 400)
+        pred_noise: 预测的噪声图像数组，形状为(400, 400)
+        pred_data: 原始预测结果数据，用于计算卡方值
     """
     
     try:
@@ -277,8 +315,8 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
         model_format_fits_path = os.path.join(temp_dir, f"temp_model_format_{os.getpid()}.fits")
         model_format_fits_path = convert_ordinary_fits_to_model_format(fits_file, model_format_fits_path)
         
-        # 步骤2：从转换后的文件中提取背景
-        background = extract_background_from_fits(model_format_fits_path)
+        # 步骤2：从转换后的文件中提取背景和其他预测结果
+        background, original, pred_fore, pred_noise, pred_data = extract_background_from_fits(model_format_fits_path)
         
         # 步骤3：可选地保存背景图像为fits文件
         if save_background and output_fits_path:
@@ -289,7 +327,7 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
             hdul = fits.HDUList([hdu])
             hdul.writeto(output_fits_path, overwrite=True)
             print(f"已将提取的背景保存为FITS文件: {output_fits_path}")
-            
+        
         # 清理临时文件
         if os.path.exists(model_format_fits_path):
             try:
@@ -297,7 +335,7 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
             except:
                 print(f"警告: 无法删除临时文件 {model_format_fits_path}")
                 
-        return background
+        return background, original, pred_fore, pred_noise, pred_data
     except Exception as e:
         print(f"处理fits文件并提取背景时出错: {str(e)}")
         raise

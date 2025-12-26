@@ -34,7 +34,7 @@ psf_kernel = np.asarray(psf_kernel)
 # 配置模拟器
 sim_config = SimulatorConfig(
     dpix=0.05,
-    npix=200,
+    npix=201,
     psf_kernel=psf_kernel,
     nsub=16,
 )
@@ -102,8 +102,8 @@ def generate_random_parameters():
     
     # 随机生成噪声参数
     noise_params = {
-        'back_rms': np.random.uniform(0.05, 0.2),
-        'exp_time': np.random.uniform(200, 500)
+        'back_rms': 0.05,
+        'exp_time': 300
     }
     
     params = [
@@ -154,10 +154,16 @@ def main():
         exp_time = all_params['noise_params']['exp_time']
         noisy_image, noise_map = mock_lens(img_2d, back_rms, exp_time)
         
+        # # 计算并打印SNR
+        # signal = np.sum(img_2d)
+        # noise = np.sqrt(np.sum(noise_map ** 2))
+        # snr = signal / noise if noise != 0 else 0
+        # print(f"  SNR: {snr:.2f}")
+        
         # 保存数据到fits文件
-        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(img_2d), overwrite=True)
-        # fits.writeto(os.path.join(folder_path, 'noise.fits'), np.asarray(noise_map), overwrite=True)
-        # fits.writeto(os.path.join(folder_path, 'psf.fits'), np.asarray(psf_kernel), overwrite=True)
+        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(noisy_image), overwrite=True)
+        fits.writeto(os.path.join(folder_path, 'noise.fits'), np.asarray(noise_map), overwrite=True)
+        fits.writeto(os.path.join(folder_path, 'psf.fits'), np.asarray(psf_kernel), overwrite=True)
         
         # 保存参数到json文件
         # 将numpy类型转换为Python原生类型以便JSON序列化
@@ -231,6 +237,8 @@ def main():
         lens_mass_e2 = float(all_params['lens_mass'][0]['e2'])
         phi_lens, q_lens = util.ellipticity2phi_q(lens_mass_e1, lens_mass_e2)
         phi_lens_deg = float(phi_lens * 180 / np.pi)
+        # 将位置角限制在0-180°之间
+        phi_lens_deg = phi_lens_deg % 180.0
         ell_lens = 1.0 / float(q_lens)
         
         # 计算source_light的phi和q
@@ -238,6 +246,8 @@ def main():
         source_light_e2 = float(all_params['source_light'][0]['e2'])
         phi_source, q_source = util.ellipticity2phi_q(source_light_e1, source_light_e2)
         phi_source_deg = float(phi_source * 180 / np.pi)
+        # 将位置角限制在0-180°之间
+        phi_source_deg = phi_source_deg % 180.0
         ell_source = 1.0 / float(q_source)
         
         # 创建符合要求格式的model.json数据
@@ -251,7 +261,8 @@ def main():
                     "ang": phi_source_deg,
                     "x": float(all_params['source_light'][0]['center_x']),
                     "y": float(all_params['source_light'][0]['center_y']),
-                    "n_sersic": float(all_params['source_light'][0]['n_sersic'])
+                    "n_sersic": float(all_params['source_light'][0]['n_sersic']),
+                    "Ie": float(all_params['source_light'][0]['Ie'])
                 },
                 {
                     "plane": "lens",
