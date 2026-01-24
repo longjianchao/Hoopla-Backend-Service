@@ -53,3 +53,8 @@ pytest_cache/
 .env.production.local
 .env.development.local
 .env.test.local
+Service/MCMC_modeling/Model_Fitting/output_images/model_fitting_result.png
+Service/MCMC_modeling/Model_Fitting/re_comparison.png
+Service/MCMC_modeling/Model_Fitting/re_error_analysis.png
+.gitignore
+Service/MCMC_modeling/Model_Fitting/re_n_error_distribution.png

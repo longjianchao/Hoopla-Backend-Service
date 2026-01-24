@@ -1,10 +1,11 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, UploadFile, File, Form
 import threading
 import io
 import base64
+import shutil
 
 from MCMC_modeling.Model_Fitting.load_json_data import update_model_config
 from MCMC_modeling.Model_Fitting.run_model_from_yaml import run_model
@@ -38,32 +39,53 @@ def run_model_thread():
 
 mcmc_app = APIRouter()
 @mcmc_app.post("/mcmc_modeling")
-async def mcmc_modeling_post(request: Request):
+async def mcmc_modeling_post(
+    model_data: str = Form(...),
+    image_file: UploadFile = File(None),
+    noise_file: UploadFile = File(None),
+    psf_file: UploadFile = File(None)
+):
     try:
-        # 获取请求体数据
-        model_data = await request.json()
-        # 打印接收到的参数概览
-        print("接收到的MCMC请求数据:")
-        # 详细解析components数组
+        data_dir = os.path.join(os.path.dirname(__file__), "Model_Fitting", "data")
+        os.makedirs(data_dir, exist_ok=True)
+        
+        if image_file:
+            image_path = os.path.join(data_dir, "image.fits")
+            with open(image_path, "wb") as f:
+                shutil.copyfileobj(image_file.file, f)
+            print(f"\n【文件保存】已保存 image.fits 到 {image_path}")
+        
+        if noise_file:
+            noise_path = os.path.join(data_dir, "noise.fits")
+            with open(noise_path, "wb") as f:
+                shutil.copyfileobj(noise_file.file, f)
+            print(f"【文件保存】已保存 noise.fits 到 {noise_path}")
+        
+        if psf_file:
+            psf_path = os.path.join(data_dir, "psf.fits")
+            with open(psf_path, "wb") as f:
+                shutil.copyfileobj(psf_file.file, f)
+            print(f"【文件保存】已保存 psf.fits 到 {psf_path}")
+        
+        model_data = json.loads(model_data)
+        print(f"\n【解析后的 model_data (JSON)】")
+        print(f"  完整内容: {json.dumps(model_data, indent=2, ensure_ascii=False)}")
+        print(f"\n接收到的MCMC请求数据:")
         components = model_data.get('components', [])
         pixscale = model_data.get('pixscale', 0)        
         print(f"总组件数量: {len(components)}")
         print(f"Pixel Scale: {pixscale}")        
-        # 区分并详细打印source和lens组件
         source_components = []
         lens_components = []
         
         for i, component in enumerate(components):
             plane_type = component.get('plane', 'unknown')
             print(f"组件 #{i+1} (类型: {plane_type}):")
-            
-            # 打印共用字段
             print(f"  椭圆率 (ell): {component.get('ell', 'N/A')}")
             print(f"  角度 (ang): {component.get('ang', 'N/A')}")
             print(f"  X坐标 (x): {component.get('x', 'N/A')}")
             print(f"  Y坐标 (y): {component.get('y', 'N/A')}")
             
-            # 根据平面类型打印特定字段
             if plane_type == 'source':
                 print(f"  大小 (size): {component.get('size', 'N/A')}")
                 print(f"  Sersic指数 (n_sersic): {component.get('n_sersic', 'N/A')}")
@@ -75,7 +97,6 @@ async def mcmc_modeling_post(request: Request):
         print(f"Source组件数量: {len(source_components)}")
         print(f"Lens组件数量: {len(lens_components)}")
 
-        # 将lens_components和source_components转换成字典
         lens_params = lens_components[0] if len(lens_components) > 0 else {}
         source_params = source_components[0] if len(source_components) > 0 else {}
         
@@ -84,24 +105,13 @@ async def mcmc_modeling_post(request: Request):
         else:
             print("警告: 没有找到有效的lens或source组件，无法更新配置文件")
 
-        # 清空旧日志
         model_log_buffer.seek(0)
         model_log_buffer.truncate(0)
 
-        # 启动线程运行模型（非阻塞）
         thread = threading.Thread(target=run_model_thread)
         thread.daemon = True
         thread.start()
         
-        # 线程已在后台运行，立即返回响应给前端
-        # 模型运行结果将通过WebSocket实时推送
-        
-        # run_model()
-        # components = export_data_params()
-        # # print(components)
-        # csv_to_json('output/result_summary.csv', 'output/result.json')
-
-        # 返回响应，表示任务已提交
         return {
             "status": "success",
             "message": "建模任务已提交到后台运行，请等待完成通知。"
@@ -110,7 +120,7 @@ async def mcmc_modeling_post(request: Request):
     except Exception as e:
         print(f"处理MCMC请求时出错: {str(e)}")
         import traceback
-        traceback.print_exc()  # 打印完整的错误栈
+        traceback.print_exc()
         return {"status": "error", "message": f"处理MCMC请求时出错: {str(e)}"}
 
 

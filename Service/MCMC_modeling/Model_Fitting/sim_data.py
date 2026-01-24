@@ -30,13 +30,14 @@ x_psf, y_psf = su.make_grid_2d(21, 0.05)
 psf_kernel = Gaussian().light(x_psf, y_psf, 1.0, 0.05, 0.0, 0.0)
 psf_kernel /= psf_kernel.sum()
 psf_kernel = np.asarray(psf_kernel)
+# psf_kernel = np.array([ [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
 
 # 配置模拟器
 sim_config = SimulatorConfig(
     dpix=0.05,
-    npix=201,
+    npix=200,
     psf_kernel=psf_kernel,
-    nsub=16,
+    nsub=1,
 )
 
 # 创建模拟器对象
@@ -84,6 +85,15 @@ def generate_random_parameters():
             center_y=np.random.uniform(-0.5, 0.5),
             Ie=1,
         )
+        # dict(
+        #     R_sersic=np.random.uniform(0.05, 0.8),
+        #     n_sersic=np.random.uniform(0.5, 4.0),
+        #     e1=0.0,
+        #     e2=0.0,
+        #     center_x=0,
+        #     center_y=0,
+        #     Ie=1,
+        # )
     ]
     
     # # 随机生成透镜光参数
@@ -161,7 +171,7 @@ def main():
         # print(f"  SNR: {snr:.2f}")
         
         # 保存数据到fits文件
-        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(noisy_image), overwrite=True)
+        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(img_2d), overwrite=True)
         fits.writeto(os.path.join(folder_path, 'noise.fits'), np.asarray(noise_map), overwrite=True)
         fits.writeto(os.path.join(folder_path, 'psf.fits'), np.asarray(psf_kernel), overwrite=True)
         

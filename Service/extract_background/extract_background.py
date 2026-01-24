@@ -144,17 +144,18 @@ def image_preprocess(data, norm, channel=1):
 
     return data
 
-def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
+def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None, original_shape=None):
     '''
     从模型格式的fits文件路径中提取背景图像
     参数:
         fits_file_path: 模型所需格式的fits文件路径
         ggsl_unet_dir: GGSL_UNet目录路径，默认为None（自动检测）
+        original_shape: 原始fits文件的形状，默认为None
     返回:
-        background_array: 提取的背景图像数组，形状为(400, 400)
-        original_image: 原始输入图像数组，形状为(400, 400)
-        pred_fore: 预测的前景图像数组，形状为(400, 400)
-        pred_noise: 预测的噪声图像数组，形状为(400, 400)
+        background_array: 提取的背景图像数组，形状与原始fits文件一致
+        original_image: 原始输入图像数组，形状与原始fits文件一致
+        pred_fore: 预测的前景图像数组，形状与原始fits文件一致
+        pred_noise: 预测的噪声图像数组，形状与原始fits文件一致
         pred_data: 原始预测结果数据，用于计算卡方值
     '''
     # 参数验证
@@ -232,30 +233,34 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
             if col not in pred_data.colnames:
                 raise ValueError(f"预测结果文件不包含'{col}'列")
         
+        # 如果没有提供原始形状，默认使用64x64（模型的输出形状）
+        if original_shape is None:
+            original_shape = (64, 64)
+        
         # 提取原始输入图像
         original = image_preprocess(pred_data['input'], channel=4, norm=1)
-        original = torch.nn.functional.interpolate(original, size=(400, 400), mode='bilinear', align_corners=False)
+        original = torch.nn.functional.interpolate(original, size=original_shape, mode='bilinear', align_corners=False)
         original = original.mean(dim=1, keepdim=True)  # 转为灰度图
         original = (original - original.min()) / (original.max() - original.min())
         original = original.squeeze().numpy()
         
         # 提取背景图像数据
         pred_back = image_preprocess(pred_data['pred_back'], channel=4, norm=1)
-        pred_back = torch.nn.functional.interpolate(pred_back, size=(400, 400), mode='bilinear', align_corners=False)
+        pred_back = torch.nn.functional.interpolate(pred_back, size=original_shape, mode='bilinear', align_corners=False)
         pred_back = pred_back.mean(dim=1, keepdim=True)  # 转为灰度图
         pred_back = (pred_back - pred_back.min()) / (pred_back.max() - pred_back.min())
         pred_back = pred_back.squeeze().numpy()
         
         # 提取前景图像数据
         pred_fore = image_preprocess(pred_data['pred_fore'], channel=4, norm=1)
-        pred_fore = torch.nn.functional.interpolate(pred_fore, size=(400, 400), mode='bilinear', align_corners=False)
+        pred_fore = torch.nn.functional.interpolate(pred_fore, size=original_shape, mode='bilinear', align_corners=False)
         pred_fore = pred_fore.mean(dim=1, keepdim=True)  # 转为灰度图
         pred_fore = (pred_fore - pred_fore.min()) / (pred_fore.max() - pred_fore.min())
         pred_fore = pred_fore.squeeze().numpy()
         
         # 提取噪声图像数据
         pred_noise = image_preprocess(pred_data['pred_noise'], channel=4, norm=1)
-        pred_noise = torch.nn.functional.interpolate(pred_noise, size=(400, 400), mode='bilinear', align_corners=False)
+        pred_noise = torch.nn.functional.interpolate(pred_noise, size=original_shape, mode='bilinear', align_corners=False)
         pred_noise = pred_noise.mean(dim=1, keepdim=True)  # 转为灰度图
         pred_noise = (pred_noise - pred_noise.min()) / (pred_noise.max() - pred_noise.min())
         pred_noise = pred_noise.squeeze().numpy()
@@ -268,7 +273,7 @@ def extract_background_from_fits(fits_file_path, ggsl_unet_dir=None):
                 print(f"警告: 无法删除临时文件 {results_fits}")
         
         # 确保返回形状正确
-        expected_shape = (400, 400)
+        expected_shape = original_shape
         for name, arr in zip(['original', 'pred_back', 'pred_fore', 'pred_noise'], [original, pred_back, pred_fore, pred_noise]):
             if arr.shape != expected_shape:
                 raise ValueError(f"{name}形状不正确: {arr.shape}，应为{expected_shape}")
@@ -297,10 +302,10 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
         save_background: 是否保存提取的背景为fits文件
         temp_dir: 临时文件保存目录，默认为None（使用当前目录）
     返回:
-        background_array: 提取的背景图像数组，形状为(400, 400)
-        original_image: 原始输入图像数组，形状为(400, 400)
-        pred_fore: 预测的前景图像数组，形状为(400, 400)
-        pred_noise: 预测的噪声图像数组，形状为(400, 400)
+        background_array: 提取的背景图像数组，形状与原始fits文件一致
+        original_image: 原始输入图像数组，形状与原始fits文件一致
+        pred_fore: 预测的前景图像数组，形状与原始fits文件一致
+        pred_noise: 预测的噪声图像数组，形状与原始fits文件一致
         pred_data: 原始预测结果数据，用于计算卡方值
     """
     
@@ -311,12 +316,23 @@ def process_ordinary_fits_and_extract_background(fits_file, output_fits_path=Non
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
         
+        # 保存原始fits文件的形状
+        original_shape = None
+        if hasattr(fits_file, "read"):
+            fits_file.seek(0)
+            hdul = fits.open(io.BytesIO(fits_file.read()))
+            original_shape = hdul[0].data.shape
+            fits_file.seek(0)  # 重置文件指针
+        elif isinstance(fits_file, str):
+            hdul = fits.open(fits_file)
+            original_shape = hdul[0].data.shape
+        
         # 步骤1：将文件对象转为模型所需格式
         model_format_fits_path = os.path.join(temp_dir, f"temp_model_format_{os.getpid()}.fits")
         model_format_fits_path = convert_ordinary_fits_to_model_format(fits_file, model_format_fits_path)
         
         # 步骤2：从转换后的文件中提取背景和其他预测结果
-        background, original, pred_fore, pred_noise, pred_data = extract_background_from_fits(model_format_fits_path)
+        background, original, pred_fore, pred_noise, pred_data = extract_background_from_fits(model_format_fits_path, original_shape=original_shape)
         
         # 步骤3：可选地保存背景图像为fits文件
         if save_background and output_fits_path:
