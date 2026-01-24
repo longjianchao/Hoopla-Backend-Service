@@ -58,3 +58,6 @@ Service/MCMC_modeling/Model_Fitting/re_comparison.png
 Service/MCMC_modeling/Model_Fitting/re_error_analysis.png
 .gitignore
 Service/MCMC_modeling/Model_Fitting/re_n_error_distribution.png
+Service/MCMC_modeling/Model_Fitting/compare_images.py
+.gitignore
+Service/MCMC_modeling/Model_Fitting/Fitting_test.py
