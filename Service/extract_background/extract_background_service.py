@@ -23,17 +23,15 @@ async def extract_background_post(file: UploadFile = File()):
         output_dir = os.path.join(os.path.dirname(__file__), "../output")
         output_path = os.path.join(output_dir, "extracted_background.fits")
         
-        # 处理文件并提取背景
-        background, original, pred_fore, pred_noise, pred_data = process_ordinary_fits_and_extract_background(
+        # 处理文件并提取背景图像和预测结果数据
+        background, pred_data = process_ordinary_fits_and_extract_background(
             file.file,
             output_fits_path=output_path,
             save_background=True,
             temp_dir=temp_dir
         )
         
-        # 归一化为 float32
-        arr = (background - np.min(background)) / (np.max(background) - np.min(background) + 1e-8)
-        arr = arr.astype(np.float32)
+        arr = background.astype(np.float64)
         # 压缩并编码
         arr_bytes = arr.tobytes()
         compressed = gzip.compress(arr_bytes)

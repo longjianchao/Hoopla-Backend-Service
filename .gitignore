@@ -61,3 +61,5 @@ Service/MCMC_modeling/Model_Fitting/re_n_error_distribution.png
 Service/MCMC_modeling/Model_Fitting/compare_images.py
 .gitignore
 Service/MCMC_modeling/Model_Fitting/Fitting_test.py
+Old TinyLensGpu.zip
+TinyLensGpu.zip
