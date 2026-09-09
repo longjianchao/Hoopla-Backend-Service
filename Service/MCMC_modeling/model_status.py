@@ -7,12 +7,12 @@ mcmc_status_router = APIRouter()
 
 @mcmc_status_router.websocket("/model_status")
 async def model_status(websocket: WebSocket):
-    """实时推送建模日志给前端"""
+    """Push modeling logs to the frontend in real time"""
     await websocket.accept()
-    print("📡 WebSocket 连接建立")
+    print("📡 WebSocket connection established")
 
-    last_pos = 0  # 上次读取位置
-    header_sent = False  # 标记表头是否已发送
+    last_pos = 0  # Last read position
+    header_sent = False  # Whether the header has been sent
     
     try:
         while True:
@@ -23,27 +23,27 @@ async def model_status(websocket: WebSocket):
                 new_output = data[last_pos:]
                 lines = new_output.split('\n')
                 
-                # 处理每一行
+                # Process each line
                 for line in lines:
                     if not line.strip():
                         continue
                     
-                    # 表头只发送一次
+                    # Send the header only once
                     if 'Status    | Bounds | Ellipses | Networks | Calls    | f_live | N_eff | log Z' in line and not header_sent:
                         header_sent = True
                         await websocket.send_text(f"{line}\n")
                     elif line.strip():
-                        # 定义状态词列表
+                        # Define the list of status words
                         status_words = ['Sampling', 'Computing', 'Bounding', 'Finished', 'Stopped']
                         
-                        # 检查这一行是否包含多个状态词
+                        # Check whether this line contains multiple status words
                         status_positions = []
                         for word in status_words:
                             pos = line.find(word)
                             if pos != -1:
                                 status_positions.append((pos, word))
                         
-                        # 如果找到多个状态词，分割并分别发送
+                        # If multiple status words are found, split and send them separately
                         if len(status_positions) > 1:
                             for i in range(len(status_positions)):
                                 start_pos = status_positions[i][0]
@@ -56,9 +56,9 @@ async def model_status(websocket: WebSocket):
                                 if status_line:
                                     await websocket.send_text(f"{status_line}\n")
                         else:
-                            # 只有一个状态词或没有状态词，直接发送
+                            # Only one status word or none: send the line as-is
                             await websocket.send_text(f"{line}\n")
                 
                 last_pos = len(data)
     except Exception as e:
-        print("WebSocket连接关闭:", e)
+        print("WebSocket connection closed:", e)

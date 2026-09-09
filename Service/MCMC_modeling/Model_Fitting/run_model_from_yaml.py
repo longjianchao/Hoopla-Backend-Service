@@ -8,11 +8,11 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-# 设置工作目录为脚本所在目录
+# Set the working directory to the script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
-# 添加项目根目录到Python路径，以便能够导入TinyLensGpu
+# Add the project root to the Python path so TinyLensGpu can be imported
 project_root = os.path.abspath(os.path.join(script_dir, '../../../'))
 sys.path.append(project_root)
 
@@ -26,7 +26,7 @@ config_path = 'model_config.yaml'
 # with gzip.open('output/lens_model.pkl.gz', 'wb') as f:
 #     pickle.dump(lens_model, f)
 
-# 运行前在命令行中输入：
+# Before running, enter in the command line:
 # export PYTHONPATH="/root/Lens Project/TinyLensGpu:$PYTHONPATH"
 
 

@@ -32,20 +32,22 @@ dist/
 *.egg-info/
 
 # 数据文件（可选，根据需要决定是否忽略）
-data/
-*.fits
 *.zip
 
-sim_data
+GGSL_UNet/results/
+
 Service/MCMC_modeling/Model_Fitting/sim_data/
-*.fits
 *.json
 
+Service/extract_background/temp/
+
+SLACS_test/
 
 # 测试输出
 .coverage
 coverage.xml
 pytest_cache/
+Service/MCMC_modeling/Model_Fitting/output/
 
 # 环境变量文件
 .env

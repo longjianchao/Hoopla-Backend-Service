@@ -8,24 +8,24 @@ import numpy as np
 from ..ModelComponentClass import ModelComponent
 
 def csv_to_json(csv_filepath, json_filepath):
-    # 检查CSV文件是否存在
+    # Check whether the CSV file exists
     if not os.path.exists(csv_filepath):
         print(f"Current working directory: {os.getcwd()}")
         print(f"Expected CSV file path: {csv_filepath}")
         raise FileNotFoundError(f"CSV file not found: {csv_filepath}")
     
-    # 读取CSV文件
+    # Read the CSV file
     with open(csv_filepath, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         data = list(csv_reader)
     
-    # 转换数据为浮点数
+    # Convert the data to floats
     e1_lens = float(data[1]["median"])
     e2_lens = float(data[2]["median"])
     e1_source = float(data[7]["median"])
     e2_source = float(data[8]["median"])
 
-    # 调用util.ellipticity2phi_q并转换为float
+    # Call util.ellipticity2phi_q and convert to float
     phi_lens, ell_lens = util.ellipticity2phi_q(e1_lens, e2_lens)
     phi_source, ell_source = util.ellipticity2phi_q(e1_source, e2_source)
     phi_lens = float(phi_lens*180/np.pi)
@@ -34,7 +34,7 @@ def csv_to_json(csv_filepath, json_filepath):
     phi_source = float(phi_source)
     ell_source = float(ell_source)
     
-    # 转换数据为JSON格式
+    # Convert the data to JSON format
     result = {
         "pixscale": 0.05,
         "components": [
@@ -58,19 +58,19 @@ def csv_to_json(csv_filepath, json_filepath):
         ]
     }
 
-    # 写入JSON文件
+    # Write the JSON file
     with open(json_filepath, mode='w') as json_file:
         json.dump(result, json_file, indent=4)
     print(f"JSON file saved to: {json_filepath}")
 
 def export_data_params():
-    # 获取脚本所在目录
+    # Get the directory where the script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 构建基于脚本目录的路径
+    # Build paths relative to the script directory
     csv_filepath = os.path.join(script_dir, "output", "result_summary.csv")
     
-    # 检查CSV文件是否存在
+    # Check whether the CSV file exists
     if not os.path.exists(csv_filepath):
         print(f"Current working directory: {os.getcwd()}")
         print(f"Expected CSV file path: {csv_filepath}")
@@ -79,13 +79,13 @@ def export_data_params():
     with open(csv_filepath, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         data = list(csv_reader)
-    # 转换数据为浮点数
+    # Convert the data to floats
     e1_lens = float(data[1]["median"])
     e2_lens = float(data[2]["median"])
     e1_source = float(data[7]["median"])
     e2_source = float(data[8]["median"])
 
-    # 调用util.ellipticity2phi_q并转换为float
+    # Call util.ellipticity2phi_q and convert to float
     phi_lens, ell_lens = util.ellipticity2phi_q(e1_lens, e2_lens)
     phi_source, ell_source = util.ellipticity2phi_q(e1_source, e2_source)
     phi_lens = float(phi_lens*180/np.pi)
@@ -94,7 +94,7 @@ def export_data_params():
     phi_source = float(phi_source)
     ell_source = float(ell_source)
 
-    # 转换数据为ModelComponent格式
+    # Convert the data to ModelComponent format
     lens_component = ModelComponent(
         plane="lens",
         theta_e=float(data[0]["median"]),
@@ -112,39 +112,39 @@ def export_data_params():
         y=float(data[10]["median"]),
         n_sersic=float(data[6]["median"]),
     )
-    # 去掉None值
+    # Remove None values
     components = [source_component,lens_component]
     components = [comp.model_dump(exclude_none=True) for comp in components]
     return components
 
 
 if __name__ == "__main__":
-    # 获取脚本所在目录
+    # Get the directory where the script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
-    # 添加项目根目录到Python路径，以便能够导入TinyLensGpu模块
+    # Add the project root directory to the Python path so TinyLensGpu can be imported
     project_root = os.path.abspath(os.path.join(script_dir, '../../../'))
     sys.path.append(project_root)
     
-    # 处理直接运行时的导入问题，临时替换相对导入
+    # Handle the import issue when running directly; temporarily replace the relative import
     import sys
     from importlib import import_module
     
-    # 动态导入ModelComponentClass
+    # Dynamically import ModelComponentClass
     try:
         ModelComponentClass = import_module('Service.MCMC_modeling.ModelComponentClass')
         ModelComponent = ModelComponentClass.ModelComponent
     except Exception as e:
-        print(f"动态导入ModelComponentClass失败: {e}")
-        # 如果动态导入失败，尝试直接导入
+        print(f"Failed to dynamically import ModelComponentClass: {e}")
+        # If the dynamic import fails, try importing directly
         from ..ModelComponentClass import ModelComponent
     
-    # 构建基于脚本目录的路径
+    # Build paths relative to the script directory
     csv_filepath = os.path.join(script_dir, "output", "result_summary.csv")
     json_filepath = os.path.join(script_dir, "output", "result.json")
     
-    # 确保输出目录存在
+    # Ensure the output directory exists
     os.makedirs(os.path.dirname(json_filepath), exist_ok=True)
     
     csv_to_json(csv_filepath, json_filepath)
-    print("模型输出完毕。")
+    print("Model output complete.")

@@ -336,12 +336,12 @@ class RunLensModel:
         img_arc_sub = img_arc_sub * self.intensity_list[jnp.newaxis, jnp.newaxis, jnp.newaxis, :len(self.prob_model.sim_obj.phys_model.source_light)]
         img_lens_sub = img_lens_sub * self.intensity_list[jnp.newaxis, jnp.newaxis, jnp.newaxis, len(self.prob_model.sim_obj.phys_model.source_light):]
         lens_light = jnp.sum(img_lens_sub, axis=-1)  # Sum over all lens light components
-        lens_light = util.bin_image_general(lens_light, self.data_config.get('nsub', 4))
+        lens_light = util.bin_image_general(lens_light, self.prob_model.sim_obj.sim_config.nsub)
         lens_light = jsp.signal.fftconvolve(lens_light, jnp.expand_dims(self.prob_model.sim_obj.psf_kernel, -1), mode='same', axes=(0, 1))
         self.image_lens_light = jnp.squeeze(lens_light, axis=-1)
         # Process lensed source component
         lensed_source = jnp.sum(img_arc_sub, axis=-1)  # Sum over all source components
-        lensed_source = util.bin_image_general(lensed_source, self.data_config.get('nsub', 4))
+        lensed_source = util.bin_image_general(lensed_source, self.prob_model.sim_obj.sim_config.nsub)
         lensed_source = jsp.signal.fftconvolve(lensed_source, jnp.expand_dims(self.prob_model.sim_obj.psf_kernel, -1), mode='same', axes=(0, 1))
         self.image_lensed_source = jnp.squeeze(lensed_source, axis=-1)
 
@@ -418,6 +418,7 @@ class RunLensModel:
         
         # Data - 使用平方根增强
         plt.subplot(231)
+        # plt.imshow(self.image_map, origin='lower', cmap='jet', extent=extent)
         plt.imshow(self.image_map, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_map.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("Arcsec")
@@ -426,6 +427,7 @@ class RunLensModel:
         
         # Total model
         plt.subplot(232)
+        # plt.imshow(self.image_model, origin='lower', cmap='jet', extent=extent)
         # 对模型图像同样应用平方根缩放
         plt.imshow(self.image_model, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_model.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
@@ -434,6 +436,7 @@ class RunLensModel:
         
         # Residuals
         plt.subplot(233)
+        # plt.imshow((self.image_model-self.image_map)/self.noise_map, origin='lower', cmap='jet', extent=extent)
         residuals = (self.image_model-self.image_map)/self.noise_map
         vmax = np.max(np.abs(residuals))
         # 使用SymLogNorm进行残差图像的增强，设置linthresh参数以处理接近零的值
@@ -445,6 +448,7 @@ class RunLensModel:
         
         # Lens light component
         plt.subplot(234)
+        # plt.imshow(self.image_lens_light, origin='lower', cmap='jet', extent=extent)
         plt.imshow(self.image_lens_light, origin='lower', cmap='jet', extent=extent, norm=PowerNorm(gamma=0.5, vmin=self.image_lens_light.min(), vmax=common_vmax))
         plt.colorbar(fraction=0.046, pad=0.04)
         plt.xlabel("Arcsec")
@@ -453,6 +457,7 @@ class RunLensModel:
         
         # Lensed source component
         plt.subplot(235)
+        # plt.imshow(self.image_lensed_source, origin='lower', cmap='jet', extent=extent)
         plt.imshow(self.image_lensed_source, origin='lower', cmap='jet', extent=extent, 
                   norm=PowerNorm(gamma=0.5, vmin=self.image_lensed_source.min()))
         plt.colorbar(fraction=0.046, pad=0.04)
@@ -461,6 +466,7 @@ class RunLensModel:
         
         # Data - Lens light (to highlight arcs)
         plt.subplot(236)
+        # plt.imshow(self.image_map - self.image_lens_light, origin='lower', cmap='jet', extent=extent)
         data_minus_lens = self.image_map - self.image_lens_light
         # 计算数据的最大值（绝对值）用于对称显示
         max_abs = np.max(np.abs(data_minus_lens))

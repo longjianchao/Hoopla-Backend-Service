@@ -10,8 +10,8 @@ model_components:
       theta_E:
         prior_type: uniform
         prior_settings:
-        - 0.34269999999999995
-        - 0.7426999999999999
+        - 0.6806
+        - 1.264
         limits:
         - 0.0
         - 10.0
@@ -19,8 +19,8 @@ model_components:
       e1:
         prior_type: gaussian
         prior_settings:
-        - -0.5733
-        - 0.1
+        - -0.0587
+        - 0.3
         limits:
         - -1.0
         - 1.0
@@ -28,8 +28,8 @@ model_components:
       e2:
         prior_type: gaussian
         prior_settings:
-        - 0.0691
-        - 0.1
+        - 0.0036
+        - 0.3
         limits:
         - -1.0
         - 1.0
@@ -45,8 +45,8 @@ model_components:
       gamma1:
         prior_type: uniform
         prior_settings:
-        - -0.3
-        - 0.3
+        - -0.2
+        - 0.2
         limits:
         - -0.5
         - 0.5
@@ -54,8 +54,8 @@ model_components:
       gamma2:
         prior_type: uniform
         prior_settings:
-        - -0.3
-        - 0.3
+        - -0.2
+        - 0.2
         limits:
         - -0.5
         - 0.5
@@ -66,8 +66,8 @@ model_components:
       R_sersic:
         prior_type: uniform
         prior_settings:
-        - 0.2465
-        - 0.8465
+        - 0.0389
+        - 0.0721
         limits:
         - 0.0
         - 5.0
@@ -75,8 +75,8 @@ model_components:
       n_sersic:
         prior_type: uniform
         prior_settings:
-        - 0.9138
-        - 1.9138
+        - 0.4333
+        - 1.4333
         limits:
         - 0.3
         - 6.0
@@ -84,8 +84,8 @@ model_components:
       e1:
         prior_type: gaussian
         prior_settings:
-        - -0.6708
-        - 0.1
+        - -0.1914
+        - 0.3
         limits:
         - -1.0
         - 1.0
@@ -93,8 +93,8 @@ model_components:
       e2:
         prior_type: gaussian
         prior_settings:
-        - 0.438
-        - 0.1
+        - -0.4486
+        - 0.3
         limits:
         - -1.0
         - 1.0
@@ -102,8 +102,8 @@ model_components:
       center_x:
         prior_type: gaussian
         prior_settings:
-        - 0.0101
-        - 0.1
+        - 0.0513
+        - 0.5
         limits:
         - -3.0
         - 3.0
@@ -111,8 +111,8 @@ model_components:
       center_y:
         prior_type: gaussian
         prior_settings:
-        - 0.1319
-        - 0.1
+        - -0.1014
+        - 0.5
         limits:
         - -3.0
         - 3.0
@@ -126,7 +126,7 @@ model_components:
         prior_type: uniform
         prior_settings:
         - 0.001
-        - 4.9001
+        - 2.001
         limits:
         - 0.0
         - 5.0

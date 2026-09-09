@@ -3,7 +3,7 @@ import sys
 import os
 import json
 import numpy as np
-# 添加项目根目录到Python路径
+# Add the project root directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from TinyLensGpu.Simulator.Image import Simulator
 from TinyLensGpu.Profile.Light.Sersic import SersicEllipse
@@ -15,24 +15,24 @@ from TinyLensGpu.Profile.Light.Gaussian import Gaussian
 import TinyLensGpu.Profile.util as util
 from astropy.io import fits
 
-# 设置随机种子以确保可重复性
+# Set the random seed for reproducibility
 np.random.seed(42)
 
-# 创建物理模型
+# Create the physical model
 phy_model = Simulator.PhysicalModel(
     lens_mass=[SIE(), Shear()],
     source_light=[SersicEllipse()],
     lens_light=[SersicEllipse()],
 )
 
-# 生成PSF核
+# Generate the PSF kernel
 x_psf, y_psf = su.make_grid_2d(21, 0.05)
 psf_kernel = Gaussian().light(x_psf, y_psf, 1.0, 0.05, 0.0, 0.0)
 psf_kernel /= psf_kernel.sum()
 psf_kernel = np.asarray(psf_kernel)
 # psf_kernel = np.array([ [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
 
-# 配置模拟器
+# Configure the simulator
 sim_config = SimulatorConfig(
     dpix=0.05,
     npix=200,
@@ -40,47 +40,49 @@ sim_config = SimulatorConfig(
     nsub=1,
 )
 
-# 创建模拟器对象
+# Create the simulator object
 sim_obj = Simulator.LensSimulator(
     phy_model,
     sim_config
 )
 
 def mock_lens(ideal_image, back_rms, exp_time):
-    """添加噪声到理想图像"""
+    """Add noise to the ideal image"""
     noise_map = np.sqrt(ideal_image/exp_time + back_rms**2)
     noisy_image = ideal_image + np.random.normal(0, noise_map)
     return noisy_image, noise_map
 
 def generate_random_parameters():
-    """生成随机的仿真参数，确保参数分布均匀"""
-    # 随机生成透镜质量参数
-    theta_E = np.random.uniform(0.5, 3.0)  # 爱因斯坦半径
-    phi = np.random.uniform(0, 2*np.pi)    # 方位角
-    q = np.random.uniform(0.3, 1.0)        # 椭率
-    e1_l, e2_l = util.phi_q2_ellipticity(phi, q)
+    """Generate random simulation parameters with a uniform parameter distribution"""
+    # Randomly generate the lens mass parameters
+    phi_l = np.random.uniform(0, 2*np.pi)    # position angle
+    q_l = np.random.uniform(0.3, 1.0)        # axis ratio
+    e1_l, e2_l = util.phi_q2_ellipticity(phi_l, q_l)
     
     lens_mass_par_list = [
         dict(
-            theta_E=theta_E,
+            theta_E=np.random.uniform(0.5, 3.0),
             e1=e1_l,
             e2=e2_l,
-            center_x=0.0,  # 固定在原点
-            center_y=0.0,  # 固定在原点
+            center_x=0.0,  # fixed at the origin
+            center_y=0.0,  # fixed at the origin
         ),
         dict(
             gamma1=0.0,
             gamma2=0.0,
         ),  
     ]
+    phi_s = np.random.uniform(0, 2*np.pi)    # position angle
+    q_s = np.random.uniform(0.3, 1.0)        # axis ratio
+    e1_s, e2_s = util.phi_q2_ellipticity(phi_s, q_s)
     
-    # 随机生成源光参数
+    # Randomly generate the source light parameters
     source_light_par_list = [
         dict(
             R_sersic=np.random.uniform(0.05, 0.8),
-            n_sersic=np.random.uniform(0.5, 4.0),
-            e1=np.random.uniform(-0.3, 0.3),
-            e2=np.random.uniform(-0.3, 0.3),
+            n_sersic=np.random.uniform(0.3, 2.5),
+            e1=e1_s,
+            e2=e2_s,
             center_x=np.random.uniform(-0.5, 0.5),
             center_y=np.random.uniform(-0.5, 0.5),
             Ie=1,
@@ -96,21 +98,21 @@ def generate_random_parameters():
         # )
     ]
     
-    # # 随机生成透镜光参数
+    # # Randomly generate the lens light parameters
     # lens_light_par_list = [
     #     dict(
     #         R_sersic=np.random.uniform(0.5, 2.0),
     #         n_sersic=np.random.uniform(2.0, 6.0),
     #         e1=np.random.uniform(-0.3, 0.3),
     #         e2=np.random.uniform(-0.3, 0.3),
-    #         center_x=0.0,  # 固定在原点
-    #         center_y=0.0,  # 固定在原点
+    #         center_x=0.0,  # fixed at the origin
+    #         center_y=0.0,  # fixed at the origin
     #         Ie=np.random.uniform(0.5, 2.0),  
     #     )
     # ]
     lens_light_par_list = []
     
-    # 随机生成噪声参数
+    # Randomly generate the noise parameters
     noise_params = {
         'back_rms': 0.05,
         'exp_time': 300
@@ -122,7 +124,7 @@ def generate_random_parameters():
         lens_light_par_list,
     ]
     
-    # 整合所有参数到一个字典中以便保存
+    # Consolidate all parameters into one dictionary for saving
     all_params = {
         'lens_mass': lens_mass_par_list,
         'source_light': source_light_par_list,
@@ -133,25 +135,25 @@ def generate_random_parameters():
     return params, all_params
 
 def main():
-    # 获取当前文件所在目录
+    # Get the directory containing the current file
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # 创建sim_data大文件夹
+    # Create the sim_data top-level folder
     sim_data_dir = os.path.join(current_dir, 'sim_data')
     os.makedirs(sim_data_dir, exist_ok=True)
     
-    # 生成100组仿真数据
+    # Generate 100 sets of simulation data
     for i in range(1, 101):
-        # 创建序号文件夹
+        # Create the index folder
         folder_name = str(i)
         folder_path = os.path.join(sim_data_dir, folder_name)
         os.makedirs(folder_path, exist_ok=True)
         
-        print(f"生成第 {i} 组仿真数据...")
+        print(f"Generating simulation data set {i}...")
         
-        # 生成随机参数
+        # Generate random parameters
         params, all_params = generate_random_parameters()
         
-        # 进行仿真
+        # Run the simulation
         img_2d = sim_obj.simulate(
             params,
             xgrid_sub=sim_obj.xgrid_sub,
@@ -159,44 +161,44 @@ def main():
             psf_kernel=psf_kernel
         )
         
-        # 添加噪声
+        # Add noise
         back_rms = all_params['noise_params']['back_rms']
         exp_time = all_params['noise_params']['exp_time']
         noisy_image, noise_map = mock_lens(img_2d, back_rms, exp_time)
         
-        # # 计算并打印SNR
+        # # Compute and print the SNR
         # signal = np.sum(img_2d)
         # noise = np.sqrt(np.sum(noise_map ** 2))
         # snr = signal / noise if noise != 0 else 0
         # print(f"  SNR: {snr:.2f}")
         
-        # 保存数据到fits文件
-        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(img_2d), overwrite=True)
+        # Save the data to fits files
+        fits.writeto(os.path.join(folder_path, 'image.fits'), np.asarray(noisy_image), overwrite=True)
         fits.writeto(os.path.join(folder_path, 'noise.fits'), np.asarray(noise_map), overwrite=True)
         fits.writeto(os.path.join(folder_path, 'psf.fits'), np.asarray(psf_kernel), overwrite=True)
         
-        # 保存参数到json文件
-        # 将numpy类型转换为Python原生类型以便JSON序列化
+        # Save the parameters to a json file
+        # Convert numpy types to native Python types for JSON serialization
         def convert_numpy_types(obj):
-            # 处理numpy整数和浮点数
+            # Handle numpy integers and floats
             if isinstance(obj, np.integer):
                 return int(obj)
             elif isinstance(obj, np.floating):
                 return float(obj)
-            # 处理numpy数组和ArrayImpl类型
-            elif hasattr(obj, 'shape'):  # 检查是否是数组类型
+            # Handle numpy arrays and ArrayImpl types
+            elif hasattr(obj, 'shape'):  # check whether it is an array type
                 return obj.tolist()
-            # 处理字典
+            # Handle dictionaries
             elif isinstance(obj, dict):
                 return {key: convert_numpy_types(value) for key, value in obj.items()}
-            # 处理列表
+            # Handle lists
             elif isinstance(obj, list):
                 return [convert_numpy_types(item) for item in obj]
-            # 其他类型直接返回
+            # Return other types as-is
             else:
                 return obj
         
-        # 创建一个新的字典，只包含需要保存的参数信息，避免序列化问题
+        # Build a new dictionary containing only the parameter information to be saved, avoiding serialization issues
         params_to_save = {
             'lens_mass': [
                 {
@@ -242,25 +244,25 @@ def main():
         with open(os.path.join(folder_path, 'params.json'), 'w') as f:
             json.dump(params_to_save, f, indent=4)
         
-        # 计算lens_mass的phi和q
+        # Compute the phi and q of lens_mass
         lens_mass_e1 = float(all_params['lens_mass'][0]['e1'])
         lens_mass_e2 = float(all_params['lens_mass'][0]['e2'])
         phi_lens, q_lens = util.ellipticity2phi_q(lens_mass_e1, lens_mass_e2)
         phi_lens_deg = float(phi_lens * 180 / np.pi)
-        # 将位置角限制在0-180°之间
+        # Constrain the position angle to the range 0-180°
         phi_lens_deg = phi_lens_deg % 180.0
         ell_lens = 1.0 / float(q_lens)
         
-        # 计算source_light的phi和q
+        # Compute the phi and q of source_light
         source_light_e1 = float(all_params['source_light'][0]['e1'])
         source_light_e2 = float(all_params['source_light'][0]['e2'])
         phi_source, q_source = util.ellipticity2phi_q(source_light_e1, source_light_e2)
         phi_source_deg = float(phi_source * 180 / np.pi)
-        # 将位置角限制在0-180°之间
+        # Constrain the position angle to the range 0-180°
         phi_source_deg = phi_source_deg % 180.0
         ell_source = 1.0 / float(q_source)
         
-        # 创建符合要求格式的model.json数据
+        # Build the model.json data in the required format
         model_data = {
             "pixscale": 0.05,
             "components": [
@@ -285,11 +287,11 @@ def main():
             ]
         }
         
-        # 保存model.json文件
+        # Save the model.json file
         with open(os.path.join(folder_path, 'model.json'), 'w') as f:
             json.dump(model_data, f, indent=4)
     
-    print("100组仿真数据生成完成！")
+    print("Generated 100 sets of simulation data!")
 
 if __name__ == "__main__":
     main()
