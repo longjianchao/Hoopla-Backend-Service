@@ -1,0 +1,24 @@
+# Large test datasets and results, not needed by the service
+SLACS_test/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+
+# Model outputs / generated results under Service
+Service/MCMC_modeling/Model_Fitting/output/
+Service/MCMC_modeling/Model_Fitting/sim_data/
+Service/output/
+SLACS_test/
+GGSL_UNet/results/
+# Backups and logs
+*.backup
+*.log

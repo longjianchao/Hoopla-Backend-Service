@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hoopla-backend:
     build:
@@ -16,7 +14,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app:/app/myvenv/lib/python3.12/site-packages
       - NVIDIA_VISIBLE_DEVICES=all
     restart: unless-stopped
     
